@@ -1,41 +1,89 @@
 import cv2
 import os
 from ultralytics import YOLO
+import math
 
+def draw_rotated_box_on_frame(frame, x, y, w, h, angle, color=(0, 255, 0), thickness=2):
+    """
+    Draw a rotated rectangle on a frame.
+
+    Parameters:
+        frame (numpy.ndarray): The frame to draw the rectangle on.
+        x, y (int): The center coordinates of the rectangle.
+        w (int): The width of the rectangle.
+        h (int): The height of the rectangle.
+        angle (float): The rotation angle of the rectangle in degrees.
+        color (tuple): The color of the rectangle (BGR format).
+        thickness (int): The thickness of the rectangle's edges.
+    """
+    # Convert angle to radians
+    angle_rad = math.radians(angle)
+
+    # Calculate the vertices of the rotated rectangle
+    x1 = int(x - w / 2 * math.cos(angle_rad) + h / 2 * math.sin(angle_rad))
+    y1 = int(y - w / 2 * math.sin(angle_rad) - h / 2 * math.cos(angle_rad))
+    x2 = int(x + w / 2 * math.cos(angle_rad) + h / 2 * math.sin(angle_rad))
+    y2 = int(y + w / 2 * math.sin(angle_rad) - h / 2 * math.cos(angle_rad))
+    x3 = int(2 * x - x1)
+    y3 = int(2 * y - y1)
+    x4 = int(2 * x - x2)
+    y4 = int(2 * y - y2)
+
+    # Draw the rotated rectangle on the frame
+    cv2.line(frame, (x1, y1), (x2, y2), color, thickness)
+    cv2.line(frame, (x2, y2), (x3, y3), color, thickness)
+    cv2.line(frame, (x3, y3), (x4, y4), color, thickness)
+    cv2.line(frame, (x4, y4), (x1, y1), color, thickness)
+
+class_names = [
+    "-", "A", "B", "C", "D", "E", "F", "G", "H", "I",
+    "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S",
+    "T", "U", "V", "W", "X", "Y", "Z"
+]
 HOME = os.getcwd()
 MODEL_PATH = "./runs/obb/train20/weights/best.pt"
-CONFIDENCE_THRESHOLD = 0.5
-IOU_THRESHOLD = 0.8
+CONFIDENCE_THRESHOLD = 0.6
 
 model = YOLO(MODEL_PATH)
-# model = YOLO("yolov8n.pt")
+results = model.predict(source="0", conf=CONFIDENCE_THRESHOLD, show=True)
 
-vid = cv2.VideoCapture(0)
+# WIDTH = 640
+# HEIGHT = 640
+# vid = cv2.VideoCapture(0)
+# vid.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+# vid.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 
-try:
-    while True:
-        ret, frame = vid.read()
-        if not ret:
-            break
-        result = model(frame)[0]
+# try:
+#     while True:
+#         ret, frame = vid.read()
+#         if not ret:
+#             break
+#         # results = model(frame)[0]
+
         
-        for res in result.boxes.data.tolist():
-            x1 = int(res[0])
-            y1 = int(res[1])
-            x2 = int(res[2])
-            y2 = int(res[3])
-            score = int(res[4])
-            class_id = int(res[5])
 
-            if score >= CONFIDENCE_THRESHOLD:
-                cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
-                cv2.putText(frame,result.names[class_id].upper(),(x1,y1-10),cv2.FONT_HERSHEY_SIMPLEX,1.3,(0,255,0),3,cv2.LINE_AA)
+#         # for detection in results:
+#         #     detection = detection.obb
+#         #     confidence = detection.conf[0].item()
+#         #     print(detection.names)
 
-        cv2.imshow('Live Object Detection', frame)
+#         #     coords = detection.xywhr[0]
+#         #     x, y, w, h, angle = coords.tolist()
+#         #     draw_rotated_box_on_frame(frame, x, y, w, h, angle)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+#         #     # if 0.6 > CONFIDENCE_THRESHOLD:
+#         #     #     class_id = int(detection[5])
+#         #     #     class_name = results.names[class_id]
+               
+#         #     #     # Draw class label
+#         #     #     label = f"{class_name}: {confidence:.2f}"
+#         #     #     cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-finally:
-    vid.release()
-    cv2.destroyAllWindows()
+#         # cv2.imshow('Live Object Detection', frame)
+
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+# finally:
+#     vid.release()
+#     cv2.destroyAllWindows()
